@@ -1,6 +1,5 @@
 FROM quay.io/centos/centos:stream9
 
-WORKDIR /home/coder
 USER root
 RUN dnf makecache
 RUN dnf -y clean all && dnf -y update
@@ -28,13 +27,15 @@ RUN cd /usr/src \
         && ./configure --enable-optimizations \
         && make altinstall
 
+# User creation - coder
+RUN adduser -m -d /home/coder coder
+
 # Code-Server Install
-RUN mkdir -p ~/.local/lib ~/.local/bin
 RUN curl -fL https://github.com/coder/code-server/releases/download/v4.14.1/code-server-4.14.1-linux-amd64.tar.gz \
-        | tar -C ~/.local/lib -xz
-RUN mv ~/.local/lib/code-server-4.14.1-linux-amd64 ~/.local/lib/code-server-4.14.1
-RUN ln -s ~/.local/lib/code-server-4.14.1/bin/code-server ~/.local/bin/code-server
-ENV PATH="~/.local/bin:$PATH"
+        | tar -C /usr/local/lib -xz
+RUN mv /usr/local/lib/code-server-4.14.1-linux-amd64 /usr/local/lib/code-server-4.14.1
+RUN ln -s /usr/local/lib/code-server-4.14.1/bin/code-server /usr/local/bin/code-server
+ENV PATH="/usr/local/bin:$PATH"
 
 # PIP Installs
 RUN pip install jupyter jupyterhub ipywidgets widgetsnbextension jupyterlab-git s3cmd pylint s3transfer dotbot yara
