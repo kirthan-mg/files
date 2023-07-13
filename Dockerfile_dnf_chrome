@@ -1,0 +1,55 @@
+FROM quay.io/centos/centos:stream9
+
+USER root
+RUN dnf makecache
+RUN dnf -y clean all && dnf -y update
+RUN dnf -y install epel-release
+RUN dnf -y install wget gcc htop man nano vim emacs vim-common less tree zip unrar-free p7zip p7zip-plugins iputils dnsutils graphviz \
+        openssh-clients jq wireshark-cli bzip2-devel libffi-devel snappy lz4-devel python3-pip bsdtar zlib-devel pylint nodejs \
+        tmux unzip dirmngr gnupg ca-certificates yarnpkg ghostscript cmake procps dumb-init zsh glibc-locale-source glibc-langpack-en make \
+        perl-core openssl-devel 
+RUN dnf -y groupinstall "Development Tools"
+
+RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm && \
+         dnf -y install google-chrome-stable_current_x86_64.rpm && \
+         rm ./google-chrome-stable_current_x86_64.rpm
+
+# Python 3.11 Install
+RUN cd /usr/src \
+        && wget https://www.python.org/ftp/python/3.11.4/Python-3.11.4.tgz \
+        && tar -xzf Python-3.11.4.tgz \
+        && cd Python-3.11.4 \
+        && ./configure --enable-optimizations \
+        && make altinstall
+
+RUN update-alternatives --install /usr/bin/python python /usr/local/bin/python3.11 20
+
+# Python 3.10 Install
+RUN cd /usr/src \
+        && wget https://www.python.org/ftp/python/3.10.12/Python-3.10.12.tgz \
+        && tar -xzf Python-3.10.12.tgz \
+        && cd Python-3.10.12 \
+        && ./configure --enable-optimizations \
+        && make altinstall
+
+# User creation - coder
+RUN adduser -m -d /home/coder coder
+
+# Code-Server Install
+RUN curl -fL https://github.com/coder/code-server/releases/download/v4.14.1/code-server-4.14.1-linux-amd64.tar.gz \
+        | tar -C /usr/local/lib -xz
+RUN mv /usr/local/lib/code-server-4.14.1-linux-amd64 /usr/local/lib/code-server-4.14.1
+RUN ln -s /usr/local/lib/code-server-4.14.1/bin/code-server /usr/local/bin/code-server
+ENV PATH="/usr/local/bin:$PATH"
+
+# PIP Installs
+RUN python -m pip install jupyter jupyterhub ipywidgets widgetsnbextension jupyterlab-git s3cmd pylint s3transfer dotbot yara
+
+# Fixuid install
+RUN curl -SsL https://github.com/boxboat/fixuid/releases/download/v0.5.1/fixuid-0.5.1-linux-amd64.tar.gz | tar -C /usr/local/bin -xzf - && \
+    chown root:root /usr/local/bin/fixuid && \
+    chmod 4755 /usr/local/bin/fixuid && \
+    mkdir -p /etc/fixuid && \
+    printf "user: coder\ngroup: coder\n" > /etc/fixuid/config.yml
+
+ENV LANG=en_US.UTF-8
